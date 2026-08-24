@@ -86,6 +86,12 @@ jobs:
         run: |
           export PATH=/opt/homebrew/bin:$PATH
           export SLIMMED=1
+          # JavaApp's per-class rule has every javac writing into one shared
+          # classes/ dir and copying out of it, so concurrent invocations can
+          # copy a half-written .class. That is what check_empty_classes trips
+          # on. Compile Java serially first; the parallel pass below then finds
+          # it up to date and the race never has a window to happen.
+          gmake java JOBS=1 PLATFORM=${{ matrix.platform }}
           if [ "${{ matrix.platform_name }}" == "ios" ]; then
             # Build ipa and tipa for iOS
             gmake -j$(sysctl -n hw.ncpu) dsym package PLATFORM=${{ matrix.platform }}
