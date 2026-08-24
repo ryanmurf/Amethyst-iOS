@@ -19,26 +19,29 @@ jobs:
           - platform: 2
             platform_name: ios
     
-    runs-on: J316sAP
+    runs-on: macos-15
     steps:
-      - name: Remove work folders
-        run: |
-          echo "before"
-          ls -lah ./
-          rm -rf ./* || true
-          rm -rf ./.??* || true
-          echo "after"
-          ls -lah ./
-          
       - name: Checkout repository
         uses: actions/checkout@main
 
       - name: Checkout repository submodules
         run: git submodule update --init --recursive
 
+      - name: Install build dependencies
+        run: |
+          brew install ldid make cmake
+          # The Makefile gate requires a javac reporting 1.8.0 (BOOTJDK).
+          # Zulu 8 has a native arm64 macOS build, so no Rosetta is needed.
+          curl -sL -o /tmp/zulu8.tar.gz \
+            https://cdn.azul.com/zulu/bin/zulu8.96.0.205-ca-jdk8.0.504-macosx_aarch64.tar.gz
+          sudo mkdir -p /Library/Java/JavaVirtualMachines
+          sudo tar xzf /tmp/zulu8.tar.gz -C /Library/Java/JavaVirtualMachines/
+          /usr/libexec/java_home -v 1.8
+          "$(/usr/libexec/java_home -v 1.8)/bin/javac" -version
+
       - name: Get gl4es latest commit hash
         id: gl4es-sha
-        run: echo "::set-output name=sha::$(echo $(git ls-remote https://github.com/PojavLauncherTeam/gl4es-114-extra refs/heads/master | grep -io '^\S*'))"
+        run: echo "sha=$(git ls-remote https://github.com/PojavLauncherTeam/gl4es-114-extra refs/heads/master | grep -io '^\S*')" >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Cache gl4es
